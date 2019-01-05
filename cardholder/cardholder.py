@@ -76,8 +76,6 @@ class CollectCardsThread(QtCore.QThread):
 
     def __init__(self, parent, collect_cards_method, paths):
         QThread.__init__(self)
-        #super().__init__()
-        #self.start()
         
         self.parent = parent
         self.collect_cards_method = collect_cards_method
@@ -85,26 +83,12 @@ class CollectCardsThread(QtCore.QThread):
         
     def run(self):
         CollectCardsThread.__run = True
-#        self.parent.collecting_spinner.setHidden(False)
-        
-#        print("start collection")        
-#        spinner = QLabel("Collecting")
-#        spinner.move(10, 10)
-        #spinner_icon = QIcon()
-        #QPixmap(resource_filename(__name__,os.path.join("img", IMG_SPINNER)))
-#       
         ####
         time.sleep(5)
         ####
         
-        
-        
         card_list = self.collect_cards_method( self.paths)
         self.cards_collected.emit(card_list)
-#        print("ends collection")
-        
-#        self.parent.collecting_spinner.setHidden(True)
-#        self.parent.collecting_spinner.
         CollectCardsThread.__run = False
 
     def __del__(self):
@@ -202,6 +186,8 @@ class CardHolder( QWidget ):
     
     resized = QtCore.pyqtSignal(int,int)
     moved_to_front = QtCore.pyqtSignal(int)
+    
+    DEFAULT_SPINNER_NAME = 'spinner.gif'
 
     DEFAULT_MAX_OVERLAPPED_CARDS = 4    
     DEFAULT_BORDER_WIDTH = 5
@@ -211,7 +197,7 @@ class CardHolder( QWidget ):
     CARD_TRESHOLD = 6
     MAX_CARD_ROLLING_RATE = 10
     
-    def __init__(self, parent, recent_card_structure, spinner_file_name, title_hierarchy, get_new_card_method, get_collected_cards_method):
+    def __init__(self, parent, recent_card_structure, title_hierarchy, get_new_card_method, get_collected_cards_method):
         super().__init__()
 
         self.get_new_card_method = get_new_card_method
@@ -238,27 +224,44 @@ class CardHolder( QWidget ):
         self.countDown = CountDown()
         self.countDown.timeOver.connect(self.animated_move_to_closest_descreet_position)
         
-        # Spinner
-        self.spinner_movie = QMovie(spinner_file_name, QByteArray(), self)
-        self.collecting_spinner = QLabel(parent)
+        self.collecting_spinner = None
+        spinner_file_name = resource_filename(__name__,os.path.join("img", CardHolder.DEFAULT_SPINNER_NAME))
+        self.set_spinner(spinner_file_name)
+
+        # it hides the CardHolder until it is filled up with cards
+        self.select_index(0)
+        #self.setHidden(True)
+        #self.show()
+
+    # ----------------
+    #
+    # set spinner
+    #
+    # ----------------
+    def set_spinner(self, file_name):
+
+        # remove the old spinner
+        if self.collecting_spinner != None:
+            self.spinner_movie.stop()            
+            self.collecting_spinner.setParent(None)
+            self.collecting_spinner = None
+            
+        self.spinner_movie = QMovie(file_name, QByteArray(), self)
+        self.collecting_spinner = QLabel(self.parent)
         self.collecting_spinner.setMovie(self.spinner_movie)
         self.collecting_spinner.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.collecting_spinner.resize(100,100)
 
         self.spinner_movie.setCacheMode(QMovie.CacheAll)
         self.spinner_movie.setSpeed(100)
-        self.spinner_movie.start()  # if I do not start it, it stays hidden
+        self.spinner_movie.start()          # if I do not start it, it stays hidden
         self.spinner_movie.stop()
         self.collecting_spinner.move(0,0)
         self.collecting_spinner.show()
         self.collecting_spinner.setHidden(True)
 
-        #self.show()
+        img_size = self.spinner_movie.currentPixmap().size()
+        self.collecting_spinner.resize(img_size.width(), img_size.height())      
         
-        # it hides the CardHolder until it is filled up with cards
-        self.select_index(0)
-        #self.setHidden(True)
-
     # --------------------------------------
     # Shows the spinner + removes all Cards
     # --------------------------------------

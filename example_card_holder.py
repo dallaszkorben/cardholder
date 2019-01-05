@@ -13,8 +13,6 @@ from PyQt5.QtCore import Qt
 
 from pkg_resources import resource_string, resource_filename
 
-IMG_SPINNER = 'spinner.gif'
-
 from cardholder.cardholder import CardHolder
 from cardholder.cardholder import Card
 
@@ -32,20 +30,16 @@ class App(QWidget):
     def initUI(self):
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height) 
-        self.setStyleSheet('background: gray')
+        self.setStyleSheet('background: white')
  
         self.scroll_layout = QVBoxLayout(self)
         self.scroll_layout.setContentsMargins(15, 15, 15, 15)
         self.scroll_layout.setSpacing(0)
         self.setLayout(self.scroll_layout)
         
-        spinner_file_name = resource_filename(__name__,os.path.join("cardholder", "img", IMG_SPINNER))
-        print(spinner_file_name)
-
         self.actual_card_holder = CardHolder(            
             self, 
             [],
-            spinner_file_name,
             "Kezdocim",            
             self.get_new_card,
             self.collect_cards
@@ -75,6 +69,10 @@ class App(QWidget):
         self.actual_card_holder.setFocus()
 
         self.show()
+
+    def change_spinner(self):
+        self.actual_card_holder.set_spinner(self.spinner_file_name)
+
         
     def fill_up(self):
         self.actual_card_holder.start_card_collection([])
