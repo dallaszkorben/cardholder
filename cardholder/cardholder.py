@@ -50,133 +50,6 @@ from PyQt5.QtCore import QPoint
 from PyQt5.QtCore import QByteArray
 
 from pkg_resources import resource_string, resource_filename
-
-# =========================
-#
-# Collect Cards
-#
-# ========================= 
-class CollectCardsThread(QtCore.QThread):
-    cards_collected = pyqtSignal(list)
-    __instance = None
-    __run = False
-
-    def __new__(cls):
-        if cls.__instance is None:
-            cls.__instance = super().__new__(cls)
-        return cls.__instance    
-
-    @classmethod
-    def get_instance(cls, parent, collect_cards_method, paths=None):
-        if not cls.__run:
-            inst = cls.__new__(cls)
-            cls.__init__(cls.__instance, parent, collect_cards_method, paths) 
-            return inst
-        else:
-            return None
-
-    def __init__(self, parent, collect_cards_method, paths):
-        QThread.__init__(self)
-        
-        self.parent = parent
-        self.collect_cards_method = collect_cards_method
-        self.paths = paths
-        
-    def run(self):
-        CollectCardsThread.__run = True
-        ####
-        #time.sleep(5)
-        ####
-        
-        card_list = self.collect_cards_method( self.paths)
-        self.cards_collected.emit(card_list)
-        CollectCardsThread.__run = False
-
-    def __del__(self):
-        self.exiting = True
-        self.wait()
- 
-# =========================
-#
-# Rolling Animation
-#
-# ========================= 
-class AnimateRolling(QThread):
-    
-    positionChanged = pyqtSignal(int)
-    __instance = None
-    __run = False
-    
-    def __new__(cls):
-        if cls.__instance is None:
-            cls.__instance = super().__new__(cls)
-        return cls.__instance    
-    
-    @classmethod
-    def get_instance(cls, loop, value, sleep=0.01):
-        if not cls.__run:
-            inst = cls.__new__(cls)
-            cls.__init__(cls.__instance, loop, value, sleep) 
-            return inst
-        else:
-            return None
-    
-    def __init__(self, loop, value, sleep):
-        QThread.__init__(self)
-        self.loop = loop
-        self.value = value
-        self.sleep = sleep
-            
-    def __del__(self):
-        self.wait()
-    
-    def run(self): 
-        
-        # blocks to call again
-        AnimateRolling.__run = True
-        for i in range(self.loop):
-            time.sleep(self.sleep)
-            self.positionChanged.emit(self.value)
-        
-        # release blocking
-        AnimateRolling.__run = False
-
-
-# =========================
-#
-# CountDown Timer
-#
-# =========================
-class CountDown(QThread):
-    
-    timeOver = pyqtSignal()
-    __timer = 0    
-    
-    def __init__(self):
-        QThread.__init__(self)
-            
-    def __del__(self):
-        self.wait()
-    
-    def run(self): 
-
-        # Ha meg mukodik
-        if CountDown.__timer > 0:
-            CountDown.__timer = 10
-
-        # Ha mar nem mukodik
-        else:
-            CountDown.__timer = 10
-        
-            while CountDown.__timer > 0:
-                time.sleep(0.04)
-                CountDown.__timer = CountDown.__timer - 1
-                #print(CountDown.__timer)
-               
-            #print("most emital")
-            self.timeOver.emit()
-
-
  
 # =========================
 #
@@ -199,7 +72,8 @@ class CardHolder( QWidget ):
     MAX_CARD_ROLLING_RATE = 10
     
     def __init__(self, parent, recent_card_structure, title_hierarchy, get_new_card_method, get_collected_cards_method):
-        super().__init__()
+        #super(CardHolder, self).__init__(parent)
+        QWidget.__init__(self, parent)
 
         self.get_new_card_method = get_new_card_method
         self.get_collected_cards_method = get_collected_cards_method
@@ -233,6 +107,7 @@ class CardHolder( QWidget ):
         self.select_index(0)
         #self.setHidden(True)
         #self.show()
+        
 
     # ----------------
     #
@@ -309,6 +184,8 @@ class CardHolder( QWidget ):
         self.stop_spinner()
         self.fill_up_card_descriptor_list(filtered_card_list)
         self.select_actual_card()
+        
+        
         #if self.shown_card_list:
         #    self.setHidden(False)
 
@@ -551,6 +428,7 @@ class CardHolder( QWidget ):
     #
     # --------------------------------------------------------------------
     def rolling_wheel(self, delta_rate):
+        print(delta_rate)
         self.rolling(delta_rate)
         
         if self.rate_of_movement != 0:
@@ -593,11 +471,20 @@ class CardHolder( QWidget ):
             card = self.get_new_card_method(self.card_descriptor_list[first_card_index], -1, first_card_index ) 
             self.shown_card_list.insert(0, card)
             
+            
+            
+            
+            
             # add a new card to the end
             last_card = self.shown_card_list[len(self.shown_card_list)-1]                
             last_card_index = self.index_correction(last_card.index + 1)
             card = self.get_new_card_method(self.card_descriptor_list[last_card_index], self.get_max_overlapped_cards() + 1, last_card_index ) 
             self.shown_card_list.append(card)
+            
+            
+            
+            
+            
             
             # Re-print to avoid the wrong-overlapping
             for card in self.shown_card_list[::-1]:
@@ -622,6 +509,12 @@ class CardHolder( QWidget ):
         for i, card in enumerate(self.shown_card_list):
             virtual_index = card.local_index - rate
             card.place(virtual_index, True)
+
+        
+        
+        
+#        self.setMouseTracking(True)
+#        print()
 
 
 #print( [(c.local_index, c.card_data) for c in self.shown_card_list])
@@ -685,30 +578,6 @@ class CardHolder( QWidget ):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
-#    def enterEvent(self, event):
-#        self.rate_of_movement = 0
-
-    # Mouse Hover out
-#    def leaveEvent(self, event):
-#        self.rate_of_movement = 0
-
-
     def paintEvent(self, event):
         s = self.size()
         qp = QPainter()
@@ -731,41 +600,48 @@ class CardHolder( QWidget ):
             self.animated_move_to_previous(sleep=0.03)
         event.accept()
   
+        
+        
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-
-            self.clicked_card = sum([i if c.underMouse() else 0 for i, c in enumerate(self.shown_card_list)])
-            #self.animated_move_to( self.clicked_card )
-
-            
-            # now i do not know it is a press or a click
-            self.mouse_pressed = True
             self.drag_start_position = event.pos()
-            
-            #QCursor.setPos( QCursor.pos().x() + 1, QCursor.pos().y() )
+        event.ignore()
 
+#            
+#            #QCursor.setPos( QCursor.pos().x() + 1, QCursor.pos().y() )
+#
+#
 
     def mouseMoveEvent(self, event):
-        if not (event.buttons() & Qt.LeftButton):
-            return
-        self.mouse_pressed = False
+        if event.buttons() == Qt.LeftButton:
 
-        # Rolling Cards
-        delta_y = event.pos().y() - self.drag_start_position.y()
-        self.drag_start_position = event.pos()
-        self.rolling_wheel(delta_y)
-       
+            # Rolling Cards
+            delta_y = event.pos().y() - self.drag_start_position.y()
+            self.drag_start_position = event.pos()
 
-    def mouseReleaseEvent(self, event):
-        #QCursor.setPos( QCursor.pos().x() + 1, QCursor.pos().y())
+            if delta_y > 0:
+                self.rolling_wheel(1)
+            elif delta_y < 0:
+                self.rolling_wheel(-1)
+        event.ignore()
 
-        if event.button() == Qt.LeftButton:
-            pass
-            if self.mouse_pressed:
-                self.animated_move_to( self.clicked_card )
-        
-        #return QWidget.mouseMoveEvent(self, event)
+                
 
+#        self.mouse_pressed = False#
+#
+#        # Rolling Cards
+#        delta_y = event.pos().y() - self.drag_start_position.y()
+#        self.drag_start_position = event.pos()
+#        self.rolling_wheel(delta_y)
+#       
+#
+#    def mouseReleaseEvent(self, event):
+#        #QCursor.setPos( QCursor.pos().x() + 1, QCursor.pos().y())
+#
+#        if event.button() == Qt.LeftButton:
+#            pass
+#            #if self.mouse_pressed:
+#            #    self.animated_move_to( self.clicked_card )
 
         
   
@@ -787,8 +663,9 @@ class Panel(QWidget):
     DEFAULT_BORDER_WIDTH = 5
     DEFAULT_BACKGROUND_COLOR = QColor(Qt.lightGray)
     
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent):
+        #super().__init__()
+        QWidget.__init__(self, parent)
         
         self.self_layout = QVBoxLayout()
         self.self_layout.setSpacing(1)
@@ -855,9 +732,12 @@ class Card(QWidget):
     
     DEFAULT_STATUS = STATUS_NORMAL
     
+    onMouseClicked = pyqtSignal(int)
+    #onMouseDragged = pyqtSignal(int)
     
-    def __init__(self, card_data, card_holder, local_index, index):
-        super().__init__(card_holder)
+    def __init__(self, card_holder, card_data, local_index, index):
+        #super().__init__(card_holder)
+        QWidget.__init__(self, card_holder)
 
         self.card_data = card_data
         self.index = index
@@ -880,7 +760,7 @@ class Card(QWidget):
         #self.setStyleSheet('background-color: ' + "yellow")  
 
         # Panel where the content could be placed
-        self.panel = Panel()
+        self.panel = Panel(self)
         self.panel_layout = self.panel.get_layout()
         self.self_layout.addWidget(self.panel)
         
@@ -897,6 +777,11 @@ class Card(QWidget):
         self.drag_start_position = None
         #self.setDragEnabled(True)
         #self.setAcceptDrops(True)
+        
+        self.onMouseClicked.connect(self.card_holder.animated_move_to)
+        #self.onMouseDragged.connect(self.card_holder.rolling_wheel)
+
+ 
  
     def set_selected(self):
         self.set_status(Card.STATUS_SELECTED, True)
@@ -939,14 +824,8 @@ class Card(QWidget):
         
     def set_border_disabled_color(self, color):
         self.border_disabled_color = color
-        
-        
-        
  
     def set_background_color(self, color):
-        #self.background_color = color
-        #self.setStyleSheet('background-color: ' + self.background_color.name())
-        #self.update()
         self.panel.set_background_color(color)
 
     def set_border_width(self, width, update=True):
@@ -965,7 +844,6 @@ class Card(QWidget):
     def set_rate_of_width_decline(self, rate, update=True):
         self.rate_of_width_decline = rate
     
-    
     def get_panel(self):
         return self.panel
  
@@ -980,6 +858,58 @@ class Card(QWidget):
         qp.end()
  
  
+
+
+
+    def mousePressEvent(self, event):
+        #print("press Card")
+        if event.button() == Qt.LeftButton:
+            
+            # indicates that the mouse button was pressed
+            self.already_mouse_pressed = True
+            
+            self.drag_start_position = event.pos()
+            
+        event.ignore()
+
+    def mouseMoveEvent(self, event):
+        if event.buttons() == Qt.LeftButton:
+            self.already_mouse_pressed = False
+
+#            # Rolling Cards
+#            delta_y = event.pos().y() - self.drag_start_position.y()
+#            self.drag_start_position = event.pos()
+#
+#            if delta_y > 0:
+#                self.onMouseDragged.emit(1)
+#            elif delta_y < 0:
+#                self.onMouseDragged.emit(-1)
+        event.ignore()
+       
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            if self.already_mouse_pressed and self.local_index > 0:                
+                self.onMouseClicked.emit(self.local_index)
+        event.ignore()
+
+
+
+
+
+
+
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
  
  
  
@@ -1006,17 +936,6 @@ class Card(QWidget):
 #    def get_delta_y(self, y):
 #        tl=self.geometry().topLeft()
 #        return tl.y() +  (y - self.drag_start_position.y()) - self.card_start_position.y()
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1053,6 +972,21 @@ class Card(QWidget):
 #            self.parent.select_index(self.index)
         
 #    def dragEnterEvent(self, e):
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
            
    
     # ---------------------------------------------
@@ -1105,3 +1039,136 @@ class Card(QWidget):
     def get_y_position(self, local_index):
         max_card = self.card_holder.get_max_overlapped_cards()
         return ( max_card - min(local_index, max_card) ) * ( self.card_holder.get_max_overlapped_cards() - local_index ) * 6
+
+
+
+
+
+
+
+
+
+# =========================
+#
+# Collect Cards
+#
+# ========================= 
+class CollectCardsThread(QtCore.QThread):
+    cards_collected = pyqtSignal(list)
+    __instance = None
+    __run = False
+
+    def __new__(cls):
+        if cls.__instance is None:
+            cls.__instance = super().__new__(cls)
+        return cls.__instance    
+
+    @classmethod
+    def get_instance(cls, parent, collect_cards_method, paths=None):
+        if not cls.__run:
+            inst = cls.__new__(cls)
+            cls.__init__(cls.__instance, parent, collect_cards_method, paths) 
+            return inst
+        else:
+            return None
+
+    def __init__(self, parent, collect_cards_method, paths):
+        QThread.__init__(self)
+        
+        self.parent = parent
+        self.collect_cards_method = collect_cards_method
+        self.paths = paths
+        
+    def run(self):
+        CollectCardsThread.__run = True
+        ####
+        #time.sleep(5)
+        ####
+        
+        card_list = self.collect_cards_method( self.paths)
+        self.cards_collected.emit(card_list)
+        CollectCardsThread.__run = False
+
+    def __del__(self):
+        self.exiting = True
+        self.wait()
+ 
+# =========================
+#
+# Rolling Animation
+#
+# ========================= 
+class AnimateRolling(QThread):
+    
+    positionChanged = pyqtSignal(int)
+    __instance = None
+    __run = False
+    
+    def __new__(cls):
+        if cls.__instance is None:
+            cls.__instance = super().__new__(cls)
+        return cls.__instance    
+    
+    @classmethod
+    def get_instance(cls, loop, value, sleep=0.01):
+        if not cls.__run:
+            inst = cls.__new__(cls)
+            cls.__init__(cls.__instance, loop, value, sleep) 
+            return inst
+        else:
+            return None
+    
+    def __init__(self, loop, value, sleep):
+        QThread.__init__(self)
+        self.loop = loop
+        self.value = value
+        self.sleep = sleep
+            
+    def __del__(self):
+        self.wait()
+    
+    def run(self): 
+        
+        # blocks to call again
+        AnimateRolling.__run = True
+        for i in range(self.loop):
+            time.sleep(self.sleep)
+            self.positionChanged.emit(self.value)
+        
+        # release blocking
+        AnimateRolling.__run = False
+
+
+# =========================
+#
+# CountDown Timer
+#
+# =========================
+class CountDown(QThread):
+    
+    timeOver = pyqtSignal()
+    __timer = 0    
+    
+    def __init__(self):
+        QThread.__init__(self)
+            
+    def __del__(self):
+        self.wait()
+    
+    def run(self): 
+
+        # Ha meg mukodik
+        if CountDown.__timer > 0:
+            CountDown.__timer = 10
+
+        # Ha mar nem mukodik
+        else:
+            CountDown.__timer = 10
+        
+            while CountDown.__timer > 0:
+                time.sleep(0.04)
+                CountDown.__timer = CountDown.__timer - 1
+                #print(CountDown.__timer)
+               
+            #print("most emital")
+            self.timeOver.emit()

@@ -92,22 +92,53 @@ class App(QWidget):
         return cdl
         
     def get_new_card(self, card_data, local_index, index):
-        card = Card(card_data, self.actual_card_holder, local_index, index)
+        card = Card(self.actual_card_holder, card_data, local_index, index)
         
         card.set_border_selected_color(QColor(Qt.blue))
         #card.set_background_color(QColor(Qt.white))
         #card.set_border_radius( 15 )
-        #card.set_border_width(8)
-        
+        #card.set_border_width(18)
+ 
+ 
         panel = card.get_panel()
         layout = panel.get_layout()
         
         # Construct the Card
-        label=QLabel(card_data + "\n\n\n\n\n\n\n\n\n\nHello")
-        layout.addWidget(label)
+#        label=QLabel(card_data + "\n\n\n\n\n\n\n\n\n\nHello")
+#        layout.addWidget(label)
         #layout.addWidget(QPushButton("hello"))
+
+        myPanel = MyPanel(card)
+        layout.addWidget(myPanel)
         
         return card
+
+
+class MyPanel(QWidget):
+    
+    def __init__(self, card):
+        QWidget.__init__(self, card)
+        
+        self.card = card
+        #self.setAttribute(Qt.WA_StyledBackground, True)
+        #self.setStyleSheet('background-color: red' )
+        
+        self.self_layout = QVBoxLayout()
+        self.self_layout.setSpacing(1)
+        self.setLayout(self.self_layout)
+                
+        label=QLabel(card.card_data + "\n\n\n\n\n\n\n\n\n\nHello")
+        self.self_layout.addWidget(label)
+        
+        
+    def mousePressEvent(self, event):
+        #if event.button() == Qt.LeftButton:
+        #    print(self.card.card_data, self.card.local_index, self.card.status)
+        event.ignore()
+
+    def mouseMoveEvent(self, event):
+        event.ignore()
+        
   
 if __name__ == '__main__':
     app = QApplication(sys.argv)
