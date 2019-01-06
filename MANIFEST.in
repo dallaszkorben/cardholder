@@ -1,0 +1,3 @@
+include cardholder/img/*.png
+include cardholder/img/*.gif
+include cardholder/setup/setup.ini
