@@ -3,6 +3,7 @@ import math
 import time 
 import os
 from itertools import cycle
+from datetime import datetime
 
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QVBoxLayout
@@ -84,7 +85,7 @@ class CollectCardsThread(QtCore.QThread):
     def run(self):
         CollectCardsThread.__run = True
         ####
-        time.sleep(5)
+        #time.sleep(5)
         ####
         
         card_list = self.collect_cards_method( self.paths)
@@ -732,36 +733,38 @@ class CardHolder( QWidget ):
   
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            #order = sum([i if c.underMouse() else 0 for i, c in enumerate(self.shown_card_list)])
-            #self.animated_move_to( order )
+
+            self.clicked_card = sum([i if c.underMouse() else 0 for i, c in enumerate(self.shown_card_list)])
+            #self.animated_move_to( self.clicked_card )
+
             
+            # now i do not know it is a press or a click
+            self.mouse_pressed = True
             self.drag_start_position = event.pos()
-            self.card_start_position = self.geometry().topLeft()
+            
+            #QCursor.setPos( QCursor.pos().x() + 1, QCursor.pos().y() )
 
 
     def mouseMoveEvent(self, event):
         if not (event.buttons() & Qt.LeftButton):
             return
-        delta_y = self.get_delta_y(event.pos().y())  
+        self.mouse_pressed = False
+
+        # Rolling Cards
+        delta_y = event.pos().y() - self.drag_start_position.y()
         self.drag_start_position = event.pos()
-        
         self.rolling_wheel(delta_y)
-        #print(delta_y)
-        #self.drag_card(delta_y)        
+       
+
+    def mouseReleaseEvent(self, event):
+        #QCursor.setPos( QCursor.pos().x() + 1, QCursor.pos().y())
+
+        if event.button() == Qt.LeftButton:
+            pass
+            if self.mouse_pressed:
+                self.animated_move_to( self.clicked_card )
         
-#        #self.move( tl.x(), tl.y() +  (event.pos().y() - self.drag_start_position.y()) )
-
-#    def mouseReleaseEvent(self, event):
-#        self.parent.drop_card(self.local_index, self.index)
-#        self.drag_start_position = None
-#        self.card_start_position = None
-        
-        return QWidget.mouseMoveEvent(self, event)
-
-    def get_delta_y(self, y):
-        tl=self.geometry().topLeft()
-        return tl.y() +  (y - self.drag_start_position.y()) - self.card_start_position.y()
-
+        #return QWidget.mouseMoveEvent(self, event)
 
 
         
