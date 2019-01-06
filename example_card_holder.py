@@ -47,6 +47,9 @@ class App(QWidget):
         
         self.actual_card_holder.set_background_color(QColor(Qt.yellow))
         self.actual_card_holder.set_border_width(10)
+        self.actual_card_holder.set_max_overlapped_cards(4)
+        self.actual_card_holder.set_y_coordinate_by_reverse_index_method(self.get_y_coordinate_by_reverse_index)
+        self.actual_card_holder.set_x_offset_by_index_method(self.get_x_offset_by_index)
         self.scroll_layout.addWidget(self.actual_card_holder)
         
         next_button = QPushButton("next",self)
@@ -112,7 +115,12 @@ class App(QWidget):
         layout.addWidget(myPanel)
         
         return card
-
+    
+    def get_y_coordinate_by_reverse_index(self, reverse_index):
+        return reverse_index * reverse_index * 8
+    
+    def get_x_offset_by_index(self, index):
+        return index * 4
 
 class MyPanel(QWidget):
     

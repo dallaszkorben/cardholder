@@ -68,18 +68,27 @@ class CardHolder( QWidget ):
     DEFAULT_BACKGROUND_COLOR = QColor(Qt.red)
     DEFAULT_BORDER_RADIUS = 10
     
+    DEFAULT_RATE_OF_CARD_WIDTH_DECLINE = 10
+    DEFAULT_RATE_OF_CARD_Y_MULTIPLICATOR = 6
+    
     CARD_TRESHOLD = 6
     MAX_CARD_ROLLING_RATE = 10
     
-    def __init__(self, parent, recent_card_structure, title_hierarchy, get_new_card_method, get_collected_cards_method):
+    def __init__(self, 
+                 parent, 
+                 recent_card_structure, 
+                 title_hierarchy, 
+                 get_new_card_method, 
+                 get_collected_cards_method
+                 ):
         #super(CardHolder, self).__init__(parent)
         QWidget.__init__(self, parent)
 
-        self.get_new_card_method = get_new_card_method
-        self.get_collected_cards_method = get_collected_cards_method
         self.parent = parent
         self.title_hierarchy = title_hierarchy
         self.recent_card_structure = recent_card_structure
+        self.get_new_card_method = get_new_card_method
+        self.get_collected_cards_method = get_collected_cards_method
         
         self.shown_card_list = []
         self.card_descriptor_list = []
@@ -103,11 +112,25 @@ class CardHolder( QWidget ):
         spinner_file_name = resource_filename(__name__,os.path.join("img", CardHolder.DEFAULT_SPINNER_NAME))
         self.set_spinner(spinner_file_name)
 
+        self.set_y_coordinate_by_reverse_index_method(self.get_y_coordinate_by_reverse_index)
+        self.set_x_offset_by_index_method(self.get_x_offset_by_index)
+
         # it hides the CardHolder until it is filled up with cards
         self.select_index(0)
         #self.setHidden(True)
         #self.show()
         
+    def set_y_coordinate_by_reverse_index_method(self, method):
+        self.get_y_coordinate_by_reverse_index_method = method
+        
+    def get_y_coordinate_by_reverse_index(self, reverse_index):
+        return reverse_index * reverse_index * CardHolder.DEFAULT_RATE_OF_CARD_Y_MULTIPLICATOR
+
+    def set_x_offset_by_index_method(self, method):
+        self.get_x_offset_by_index_method = method
+
+    def get_x_offset_by_index(self, index):
+        return index * CardHolder.DEFAULT_RATE_OF_CARD_WIDTH_DECLINE
 
     # ----------------
     #
@@ -281,6 +304,7 @@ class CardHolder( QWidget ):
         self.shown_card_list = [None for i in range(index_corr + min(self.max_overlapped_cards, len(self.card_descriptor_list)-1), index_corr - 1, -1) ]
         
         for i in range( index_corr + min(self.max_overlapped_cards, len(self.card_descriptor_list)-1), index_corr - 1, -1):
+            
             i_corr = self.index_correction(i)
             
             if( i_corr < len(self.card_descriptor_list)):
@@ -428,7 +452,6 @@ class CardHolder( QWidget ):
     #
     # --------------------------------------------------------------------
     def rolling_wheel(self, delta_rate):
-        print(delta_rate)
         self.rolling(delta_rate)
         
         if self.rate_of_movement != 0:
@@ -459,7 +482,9 @@ class CardHolder( QWidget ):
         self.rate_of_movement = self.rate_of_movement + delta_rate
 
         # Did not start to roll
-        if len(self.shown_card_list) <= self.get_max_overlapped_cards() + 1:
+        # if number of the shown cards are != min(max overlapped cards +1, len(self.card_descriptor_list))
+        #if len(self.shown_card_list) <= self.get_max_overlapped_cards() + 1:
+        if len(self.shown_card_list) == min(self.max_overlapped_cards + 1, len(self.card_descriptor_list)):
             
             # indicates that the first card is not the selected anymore
             card = self.shown_card_list[0]
@@ -478,7 +503,9 @@ class CardHolder( QWidget ):
             # add a new card to the end
             last_card = self.shown_card_list[len(self.shown_card_list)-1]                
             last_card_index = self.index_correction(last_card.index + 1)
-            card = self.get_new_card_method(self.card_descriptor_list[last_card_index], self.get_max_overlapped_cards() + 1, last_card_index ) 
+            #card = self.get_new_card_method(self.card_descriptor_list[last_card_index], self.get_max_overlapped_cards() + 1, last_card_index ) 
+            card = self.get_new_card_method(self.card_descriptor_list[last_card_index], min(self.max_overlapped_cards + 1, len(self.card_descriptor_list)), last_card_index ) 
+            
             self.shown_card_list.append(card)
             
             
@@ -509,12 +536,7 @@ class CardHolder( QWidget ):
         for i, card in enumerate(self.shown_card_list):
             virtual_index = card.local_index - rate
             card.place(virtual_index, True)
-
         
-        
-        
-#        self.setMouseTracking(True)
-#        print()
 
 
 #print( [(c.local_index, c.card_data) for c in self.shown_card_list])
@@ -601,6 +623,9 @@ class CardHolder( QWidget ):
         event.accept()
   
         
+    # --------------
+    # MOUSE handling
+    # --------------
         
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -722,7 +747,7 @@ class Card(QWidget):
     STATUS_SELECTED = 1
     DTATUS_DISABLED = 2
     
-    DEFAULT_RATE_OF_WIDTH_DECLINE = 10
+#    DEFAULT_RATE_OF_WIDTH_DECLINE = 10
     DEFAULT_BORDER_WIDTH = 2
     DEFAULT_BORDER_RADIUS = 10
     
@@ -767,7 +792,7 @@ class Card(QWidget):
         self.border_radius = Card.DEFAULT_BORDER_RADIUS
         self.set_border_width(Card.DEFAULT_BORDER_WIDTH, False)
         self.set_border_radius(Card.DEFAULT_BORDER_RADIUS, False)        
-        self.set_rate_of_width_decline(Card.DEFAULT_RATE_OF_WIDTH_DECLINE, False)
+        #self.set_rate_of_width_decline(Card.DEFAULT_RATE_OF_WIDTH_DECLINE, False)
         
         self.set_status(Card.STATUS_NORMAL)
         
@@ -780,8 +805,6 @@ class Card(QWidget):
         
         self.onMouseClicked.connect(self.card_holder.animated_move_to)
         #self.onMouseDragged.connect(self.card_holder.rolling_wheel)
-
- 
  
     def set_selected(self):
         self.set_status(Card.STATUS_SELECTED, True)
@@ -841,8 +864,8 @@ class Card(QWidget):
         if update:
             self.update()
 
-    def set_rate_of_width_decline(self, rate, update=True):
-        self.rate_of_width_decline = rate
+#    def set_rate_of_width_decline(self, rate, update=True):
+#        self.rate_of_width_decline = rate
     
     def get_panel(self):
         return self.panel
@@ -858,11 +881,10 @@ class Card(QWidget):
         qp.end()
  
  
-
-
-
+    # --------------
+    # MOUSE handling
+    # --------------
     def mousePressEvent(self, event):
-        #print("press Card")
         if event.button() == Qt.LeftButton:
             
             # indicates that the mouse button was pressed
@@ -993,8 +1015,8 @@ class Card(QWidget):
     # The offset of the Card from the left side as 
     # 'The farther the card is the narrower it is'
     # ---------------------------------------------
-    def get_x_offset(self, local_index):
-        return  local_index * self.rate_of_width_decline
+#    def get_x_offset(self, local_index):
+#        return  local_index * self.rate_of_width_decline
  
     # ----------------------------------------
     #
@@ -1009,7 +1031,7 @@ class Card(QWidget):
         # The farther the card is the narrower it is
         if local_index==None:
             local_index = self.local_index
-        standard_width = width - 2*self.card_holder.get_border_width() - 2*self.get_x_offset(local_index)
+        standard_width = width - 2*self.card_holder.get_border_width() - 2*self.card_holder.get_x_offset_by_index_method(local_index)
         self.resize( standard_width, self.sizeHint().height() )
 
     # ---------------------------------------
@@ -1024,21 +1046,37 @@ class Card(QWidget):
         
         # Need to resize and reposition the Car as 'The farther the card is the narrower it is'
         self.resized(self.card_holder.width(), self.card_holder.height(), local_index)
-        x_position = self.card_holder.get_border_width() + self.get_x_offset(local_index)
-        y_position = self.card_holder.get_border_width() + self.get_y_position(local_index)
+        x_coordinate = self.card_holder.get_border_width() + self.card_holder.get_x_offset_by_index_method(local_index)
+        y_coordinate = self.card_holder.get_border_width() + self.get_y_coordinate(local_index)
         
         if front_remove:
-            y_position = y_position - local_index * (math.exp(5 - 5 * local_index) / 2000) * self.height()
+            y_coordinate = y_coordinate - local_index * (math.exp(5 - 5 * local_index) / 2000) * self.height()
             
-        self.move( x_position, y_position )
+        self.move( x_coordinate, y_coordinate )
         
         self.show()
         
-        return(QPoint(x_position, y_position), QPoint(self.width(),self.height()))
+        return(QPoint(x_coordinate, y_coordinate), QPoint(self.width(),self.height()))
 
-    def get_y_position(self, local_index):
-        max_card = self.card_holder.get_max_overlapped_cards()
-        return ( max_card - min(local_index, max_card) ) * ( self.card_holder.get_max_overlapped_cards() - local_index ) * 6
+    # ----------------------------------
+    #
+    # Get Y coordinate by the local_index
+    #
+    # ----------------------------------
+    def get_y_coordinate(self, local_index):
+        max_card = min(self.card_holder.max_overlapped_cards, len(self.card_holder.card_descriptor_list) - 1)
+        reverse_index = max_card - min(local_index, max_card)  #0->most farther
+        #print(max_card)
+        #return ( max_card - min(local_index, max_card) ) * ( self.card_holder.get_max_overlapped_cards() - local_index ) * 16
+
+        return self.card_holder.get_y_coordinate_by_reverse_index_method(reverse_index)
+
+    
+    
+
+
+
+
 
 
 
